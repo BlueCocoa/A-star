@@ -60,9 +60,7 @@ int main(int argc, const char * argv[]) {
         estimated[nodes_label[from]] = value;
     }
     
-    std::vector<size_t> trace = Astar<int>(N, (const int **)graph, nodes_label[initial], nodes_label[goal], [&estimated](const size_t current) {
-        return estimated[(int)current];
-    });
+    std::vector<size_t> trace = Astar<int>(N, (const int **)graph, nodes_label[initial], nodes_label[goal]);
     
     std::cout << initial << " -> " << goal << ":\n";
     std::for_each(trace.begin(), trace.end(), [&nodes](const size_t node) {

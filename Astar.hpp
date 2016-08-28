@@ -13,6 +13,7 @@
 #include <functional>
 #include <limits>
 #include <queue>
+#include <set>
 #include <stack>
 #include <tuple>
 #include <vector>
@@ -51,58 +52,78 @@ std::vector<size_t> Astar(size_t nodes, const Weight ** graph, const size_t init
     // frontier, increasing order
     std::priority_queue<state, std::vector<state>, decltype(cmp)> frontier(cmp);
     
+    // visited node
+    std::set<size_t> visited;
+    
+    // froniter set
+    std::set<size_t> froniter_set;
+    
     // record trace
     size_t * visit = (size_t *)malloc(sizeof(size_t) * nodes);
     
-    // start from initial
-    size_t last = initial;
-    frontier.push({initial, last, 0, estimated(initial)});
+    // start from initial node
+    frontier.push({initial, initial, 0, estimated(initial)});
+    froniter_set.emplace(initial);
+    
+    // a flag variable
+    bool found = false;
     
     // frontier will be empty if goal is not in our search space
     while (!frontier.empty()) {
         // this is least weighted node
         auto current = frontier.top();
-        frontier.pop();
-        
+    
         // node number
         size_t current_node = std::get<0>(current);
+        
+        frontier.pop();
+        froniter_set.erase(current_node);
+        
+        // record that this node has been visited
+        visited.emplace(current_node);
         
         // we go to this node via last
         size_t from = std::get<1>(current);
         visit[current_node] = from;
         
         // goal test
-        if (current_node == goal) {
+        if ((found = (current_node == goal))) {
             break;
         } else {
             // iterate possible node
             for (size_t to = 0; to < nodes; to++) {
                 // don't stay here
                 // and if node to is reachable from current node
-                if (to != current_node && graph[current_node][to] != std::numeric_limits<Weight>::max()) {
-                    // push this state to frontier
-                    frontier.push({to, current_node, std::get<2>(current) + graph[current_node][to], estimated(to)});
+                if (to != current_node && graph[current_node][to] != std::numeric_limits<Weight>::max() && (visited.find(to) == visited.end())) {
+                    // don't go back
+                    if (froniter_set.find(to) == froniter_set.end()) {
+                        // push this state to frontier
+                        frontier.push({to, current_node, std::get<2>(current) + graph[current_node][to], estimated(to)});
+                        froniter_set.emplace(to);
+                    }
                 }
             }
         }
     }
     
-    // build trace
-    std::stack<size_t> trace_stack;
-    size_t from = goal;
-    trace_stack.push(from);
-    while (from != initial) {
-        from = visit[from];
+    std::vector<size_t> trace;
+    if (found) {
+        // build trace
+        std::stack<size_t> trace_stack;
+        size_t from = goal;
         trace_stack.push(from);
+        while (from != initial) {
+            from = visit[from];
+            trace_stack.push(from);
+        }
+        
+        // move trace into std::vector
+        while (!trace_stack.empty()) {
+            trace.emplace_back(trace_stack.top());
+            trace_stack.pop();
+        }
     }
     free((void *)visit);
-    
-    // move trace into std::vector
-    std::vector<size_t> trace;
-    while (!trace_stack.empty()) {
-        trace.emplace_back(trace_stack.top());
-        trace_stack.pop();
-    }
     
     return trace;
 }
